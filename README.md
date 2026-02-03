@@ -2,178 +2,113 @@
 
 Docker Compose setup for running n8n workflow automation with integrated CLI tools.
 
-## Overview
+Supports both **development** (local) and **production** (Traefik/SSL) modes.
 
-This integration allows n8n workflows to execute CLI tools:
-- **webscrape** - Scrape files from JavaScript-heavy pages
-- **mdconvert** - Convert Markdown to PDF or DOCX
-- **genimg** - Generate images with Google Imagen API
-- **qrgen** - Generate branded QR codes
+## Features
+
+- **n8n** - Workflow automation platform
+- **CLI Tools** - webscrape, mdconvert, genimg, qrgen
+- **Development mode** - Local access on port 5678
+- **Production mode** - Traefik reverse proxy with automatic SSL
+- **Shared volumes** - File exchange between n8n and CLI tools
+- **Auto-updates** - CLI tools can update from GitHub on container start
 
 ## Quick Start
 
-### Option 1: Interactive Setup (Recommended)
+### Development (Local)
 
 ```bash
-# 1. Clone this repository
+# Clone repository
 git clone https://github.com/orbruno/n8n-cli-tools.git
 cd n8n-cli-tools
 
-# 2. Run setup script (generates .env with secure credentials)
+# Run setup (generates secure credentials)
 ./setup.sh
 
-# 3. Start the services
+# Start services
 docker-compose up -d
 
-# 4. Access n8n
+# Access n8n
 open http://localhost:5678
 ```
 
-### Option 2: Manual Setup
+### Production (With SSL)
 
 ```bash
-# 1. Clone and enter directory
-git clone https://github.com/orbruno/n8n-cli-tools.git
-cd n8n-cli-tools
+# Run production setup
+./setup.sh --prod
 
-# 2. Create environment file
-cp .env.example .env
+# Start with Traefik
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
-# 3. Edit .env and set:
-#    - N8N_ADMIN_PASSWORD (your password)
-#    - N8N_ENCRYPTION_KEY (run: openssl rand -hex 32)
-
-# 4. Start the services
-docker-compose up -d
+# Access n8n at your configured domain
+# https://n8n.yourdomain.com
 ```
-
-**No setup wizard** - Login directly with your credentials from `.env`
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   Docker Network                     │
-│                                                      │
-│  ┌──────────────┐         ┌──────────────────────┐  │
-│  │     n8n      │ ──────> │     cli-tools        │  │
-│  │  :5678       │  exec   │  webscrape, mdconvert│  │
-│  │              │         │  genimg, qrgen       │  │
-│  └──────────────┘         └──────────────────────┘  │
-│         │                          │                 │
-│         └──────────┬───────────────┘                 │
-│                    │                                 │
-│              ┌─────┴─────┐                          │
-│              │  shared   │                          │
-│              │  volume   │                          │
-│              │  /data    │                          │
-│              └───────────┘                          │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      Docker Network                          │
+│                                                              │
+│  ┌────────────┐     ┌──────────────┐     ┌───────────────┐  │
+│  │  Traefik   │────>│     n8n      │────>│   cli-tools   │  │
+│  │  (prod)    │     │   :5678      │exec │  webscrape    │  │
+│  │  :80/:443  │     │              │     │  mdconvert    │  │
+│  └────────────┘     └──────────────┘     │  genimg       │  │
+│                            │             │  qrgen        │  │
+│                            │             └───────────────┘  │
+│                     ┌──────┴──────┐             │           │
+│                     │   shared    │─────────────┘           │
+│                     │   /data     │                         │
+│                     └─────────────┘                         │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Using CLI Tools in n8n Workflows
+## Using CLI Tools in n8n
 
-### Method 1: Execute Command Node (Docker Exec)
+### Execute Command Node
 
-Use the **Execute Command** node to run CLI tools:
+In n8n's **Execute Command** node:
 
 ```bash
-# In n8n Execute Command node:
-docker exec cli-tools webscrape scrape "https://example.com" --download -o /data/shared/
+# Scrape website
+docker exec cli-tools webscrape scrape "{{ $json.url }}" -o /data/shared/
+
+# Convert Markdown to PDF
+docker exec cli-tools mdconvert /files/document.md /data/shared/output.pdf
+
+# Generate QR code
+docker exec cli-tools qrgen "{{ $json.url }}" -o /data/shared/qr.png
+
+# Generate AI image (requires GOOGLE_AI_API_KEY)
+docker exec cli-tools genimg "{{ $json.prompt }}" -o /data/shared/image.png
 ```
 
-### Method 2: SSH Node (Recommended)
+### Shared Volumes
 
-Configure SSH access to the cli-tools container for more reliable execution.
-
-### Method 3: HTTP Request to Custom API
-
-You can extend cli-tools with a simple HTTP API wrapper.
-
----
-
-## Workflow Examples
-
-### Example 1: Scrape Website and Convert to PDF
-
-```
-[Webhook Trigger]
-    → [Execute Command: webscrape]
-    → [Execute Command: mdconvert]
-    → [Send Email with PDF]
-```
-
-**Execute Command 1 (webscrape):**
-```bash
-docker exec cli-tools webscrape scrape "{{ $json.url }}" -o /data/shared/scraped/
-```
-
-**Execute Command 2 (mdconvert):**
-```bash
-docker exec cli-tools mdconvert /data/shared/scraped/content.md /data/shared/output.pdf
-```
-
-### Example 2: Generate QR Code for URL
-
-```
-[Webhook with URL]
-    → [Execute Command: qrgen]
-    → [Read Binary File]
-    → [Respond with Image]
-```
-
-**Execute Command:**
-```bash
-docker exec cli-tools qrgen "{{ $json.url }}" -o /data/shared/qr-{{ $json.id }}.png
-```
-
-### Example 3: Generate AI Image
-
-```
-[Webhook with Prompt]
-    → [Execute Command: genimg]
-    → [Upload to S3]
-```
-
-**Execute Command:**
-```bash
-docker exec cli-tools genimg "{{ $json.prompt }}" -o /data/shared/generated-image.png
-```
-
----
-
-## Shared Data Volume
-
-The `/data/shared` volume is mounted in both n8n and cli-tools containers:
-
-| Container | Path | Purpose |
-|-----------|------|---------|
-| n8n | `/data/shared` | Read/write files |
-| cli-tools | `/data/shared` | Output directory for generated files |
-
-### Reading Files in n8n
-
-Use the **Read Binary File** node to read files generated by CLI tools:
-- Path: `/data/shared/filename.pdf`
-
----
+| Volume | n8n Path | cli-tools Path | Purpose |
+|--------|----------|----------------|---------|
+| shared_data | `/data/shared` | `/data/shared` | Output files |
+| local-files | `/files` | `/files` | Host-mounted files |
 
 ## Configuration
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `N8N_PORT` | n8n web interface port | `5678` |
-| `N8N_BASIC_AUTH_USER` | Admin username | `admin` |
-| `N8N_BASIC_AUTH_PASSWORD` | Admin password | (required) |
-| `N8N_ENCRYPTION_KEY` | Encryption key for credentials | (required) |
-| `CLI_TOOLS_AUTO_UPDATE` | Auto-update tools on start | `false` |
-| `GOOGLE_AI_API_KEY` | API key for imagen-cli | (optional) |
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `N8N_ADMIN_USER` | Admin username | Yes |
+| `N8N_ADMIN_PASSWORD` | Admin password | Yes |
+| `N8N_ENCRYPTION_KEY` | Encryption key | Yes |
+| `DOMAIN_NAME` | Domain (production) | Prod only |
+| `SUBDOMAIN` | Subdomain (production) | Prod only |
+| `SSL_EMAIL` | Let's Encrypt email | Prod only |
+| `GOOGLE_AI_API_KEY` | For imagen-cli | Optional |
 
-### Customizing CLI Tools
+### Customize CLI Tools
 
-Edit `cli-tools/cli-tools.yml` to enable/disable specific tools:
+Edit `cli-tools/cli-tools.yml` to enable/disable tools:
 
 ```yaml
 tools:
@@ -183,72 +118,71 @@ tools:
     enabled: false  # Disable if not needed
 ```
 
-Then rebuild:
+Rebuild after changes:
 ```bash
 docker-compose build cli-tools
 docker-compose up -d
 ```
 
----
-
-## Updating
-
-### Update n8n
+## Commands
 
 ```bash
+# Development
+docker-compose up -d                    # Start
+docker-compose down                     # Stop
+docker-compose logs -f n8n              # View n8n logs
+
+# Production
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
+
+# Update n8n
 docker-compose pull n8n
 docker-compose up -d
+
+# Update CLI tools
+docker exec cli-tools update-cli-tools
+
+# Access CLI tools container
+docker exec -it cli-tools bash
 ```
 
-### Update CLI Tools
+## Directory Structure
 
-```bash
-# Option 1: Auto-update on container restart
-docker-compose exec cli-tools update-cli-tools
-
-# Option 2: Rebuild image
-docker-compose build --no-cache cli-tools
-docker-compose up -d
 ```
-
----
+n8n-cli-tools/
+├── docker-compose.yml        # Base configuration
+├── docker-compose.prod.yml   # Production (Traefik/SSL)
+├── .env.example              # Environment template
+├── setup.sh                  # Interactive setup script
+├── cli-tools/                # CLI tools Docker build
+│   ├── Dockerfile
+│   ├── cli-tools.yml         # Tool configuration
+│   └── entrypoint.sh
+├── workflows/                # Exported n8n workflows
+├── local-files/              # Host-mounted files
+└── docs/
+    └── KNOWN_ISSUES.md       # Troubleshooting guide
+```
 
 ## Troubleshooting
 
-### Check container logs
+See [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md) for common issues.
+
+### Quick Fixes
 
 ```bash
-docker-compose logs -f n8n
-docker-compose logs -f cli-tools
-```
+# n8n shows setup screen instead of login
+# → Encryption key mismatch. Check docs/KNOWN_ISSUES.md
 
-### Test CLI tools manually
-
-```bash
+# CLI tools not executing
 docker exec -it cli-tools bash
 webscrape --help
-```
 
-### Verify shared volume
-
-```bash
-# From n8n container
+# Check shared volume
 docker exec n8n ls -la /data/shared
-
-# From cli-tools container
 docker exec cli-tools ls -la /data/shared
 ```
-
----
-
-## Security Notes
-
-1. **Always set a strong password** for `N8N_BASIC_AUTH_PASSWORD`
-2. **Generate a unique encryption key** with `openssl rand -hex 32`
-3. **Never commit `.env`** file to version control
-4. For production, use HTTPS with a reverse proxy (nginx, traefik)
-
----
 
 ## Related Repositories
 

@@ -1,0 +1,7 @@
+# Local files directory
+# This folder is mounted in both n8n and cli-tools containers
+# Use it to share files between your host and the containers
+#
+# Paths:
+#   n8n:       /files
+#   cli-tools: /files

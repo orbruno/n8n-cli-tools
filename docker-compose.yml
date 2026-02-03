@@ -1,9 +1,17 @@
 version: '3.8'
 
+# n8n + CLI Tools
+#
+# Usage:
+#   Development:  docker-compose up -d
+#   Production:   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
 services:
+  # ===========================================
   # n8n Workflow Automation
+  # ===========================================
   n8n:
-    image: n8nio/n8n:latest
+    image: docker.n8n.io/n8nio/n8n:latest
     container_name: n8n
     restart: unless-stopped
     ports:
@@ -16,29 +24,31 @@ services:
       - NODE_ENV=production
       - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
 
-      # Skip setup wizard - use basic auth instead of user management
+      # Skip setup wizard - use basic auth
       - N8N_USER_MANAGEMENT_DISABLED=true
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=${N8N_ADMIN_USER:-admin}
       - N8N_BASIC_AUTH_PASSWORD=${N8N_ADMIN_PASSWORD}
 
-      # Encryption key (generate with: openssl rand -hex 32)
+      # Encryption key for credentials
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
 
       # Timezone
       - GENERIC_TIMEZONE=${TIMEZONE:-America/Costa_Rica}
       - TZ=${TIMEZONE:-America/Costa_Rica}
 
-      # Telemetry (disable if preferred)
+      # Features
+      - N8N_RUNNERS_ENABLED=true
       - N8N_DIAGNOSTICS_ENABLED=${N8N_DIAGNOSTICS_ENABLED:-false}
       - N8N_PERSONALIZATION_ENABLED=false
 
-      # External services (for CLI tools)
+      # API Keys (passed to CLI tools via shared env)
       - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY:-}
 
     volumes:
       - n8n_data:/home/node/.n8n
       - ./workflows:/home/node/workflows
+      - ./local-files:/files
       # Shared volume for file exchange with cli-tools
       - shared_data:/data/shared
     depends_on:
@@ -46,7 +56,9 @@ services:
     networks:
       - n8n-network
 
+  # ===========================================
   # CLI Tools Container
+  # ===========================================
   cli-tools:
     build:
       context: ./cli-tools
@@ -55,7 +67,7 @@ services:
     container_name: cli-tools
     restart: unless-stopped
     environment:
-      # Auto-update on container start
+      # Auto-update settings
       - CLI_TOOLS_UPDATE_CHECK=${CLI_TOOLS_UPDATE_CHECK:-true}
       - CLI_TOOLS_AUTO_UPDATE=${CLI_TOOLS_AUTO_UPDATE:-false}
       # API Keys
@@ -63,27 +75,14 @@ services:
     volumes:
       # Shared volume for file exchange with n8n
       - shared_data:/data/shared
+      # Local files access
+      - ./local-files:/files
       # Persist tool repos for faster updates
       - cli_tools_repos:/opt/cli-tools
     networks:
       - n8n-network
     # Keep container running for n8n to execute commands
     command: ["tail", "-f", "/dev/null"]
-
-  # Optional: Postgres database for n8n (recommended for production)
-  # Uncomment if you want persistent database instead of SQLite
-  # postgres:
-  #   image: postgres:15-alpine
-  #   container_name: n8n-postgres
-  #   restart: unless-stopped
-  #   environment:
-  #     - POSTGRES_USER=${POSTGRES_USER:-n8n}
-  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-n8n}
-  #     - POSTGRES_DB=${POSTGRES_DB:-n8n}
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   networks:
-  #     - n8n-network
 
 networks:
   n8n-network:
@@ -96,5 +95,3 @@ volumes:
     name: n8n_cli_shared
   cli_tools_repos:
     name: cli_tools_repos
-  # postgres_data:
-  #   name: n8n_postgres_data
