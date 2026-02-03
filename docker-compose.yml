@@ -16,17 +16,22 @@ services:
       - NODE_ENV=production
       - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
 
-      # Authentication
-      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
-      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-}
+      # Skip setup wizard - use basic auth instead of user management
+      - N8N_USER_MANAGEMENT_DISABLED=true
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_ADMIN_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_ADMIN_PASSWORD}
 
       # Encryption key (generate with: openssl rand -hex 32)
-      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
 
       # Timezone
       - GENERIC_TIMEZONE=${TIMEZONE:-America/Costa_Rica}
       - TZ=${TIMEZONE:-America/Costa_Rica}
+
+      # Telemetry (disable if preferred)
+      - N8N_DIAGNOSTICS_ENABLED=${N8N_DIAGNOSTICS_ENABLED:-false}
+      - N8N_PERSONALIZATION_ENABLED=false
 
       # External services (for CLI tools)
       - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY:-}

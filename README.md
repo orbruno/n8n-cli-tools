@@ -12,26 +12,42 @@ This integration allows n8n workflows to execute CLI tools:
 
 ## Quick Start
 
+### Option 1: Interactive Setup (Recommended)
+
 ```bash
 # 1. Clone this repository
+git clone https://github.com/orbruno/n8n-cli-tools.git
+cd n8n-cli-tools
+
+# 2. Run setup script (generates .env with secure credentials)
+./setup.sh
+
+# 3. Start the services
+docker-compose up -d
+
+# 4. Access n8n
+open http://localhost:5678
+```
+
+### Option 2: Manual Setup
+
+```bash
+# 1. Clone and enter directory
 git clone https://github.com/orbruno/n8n-cli-tools.git
 cd n8n-cli-tools
 
 # 2. Create environment file
 cp .env.example .env
 
-# 3. Generate encryption key and update .env
-echo "N8N_ENCRYPTION_KEY=$(openssl rand -hex 32)" >> .env
+# 3. Edit .env and set:
+#    - N8N_ADMIN_PASSWORD (your password)
+#    - N8N_ENCRYPTION_KEY (run: openssl rand -hex 32)
 
-# 4. Set a secure password in .env
-# Edit .env and set N8N_BASIC_AUTH_PASSWORD
-
-# 5. Start the services
+# 4. Start the services
 docker-compose up -d
-
-# 6. Access n8n
-open http://localhost:5678
 ```
+
+**No setup wizard** - Login directly with your credentials from `.env`
 
 ## Architecture
 
