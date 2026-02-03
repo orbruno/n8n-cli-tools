@@ -1,0 +1,67 @@
+# CLI Tools Configuration
+# Define which tools to include in the Docker image
+#
+# Build with: python build.py
+# Or: python build.py --config my-custom-config.yml
+
+# Base image settings
+base:
+  python_version: "3.11"
+  image_name: "cli-tools"
+  image_tag: "latest"
+
+# System dependencies (always installed)
+# Add any additional apt packages here
+system_packages:
+  - git
+  - curl
+
+# Tools to include
+# Set 'enabled: false' to exclude a tool from the build
+tools:
+  web-scraper-cli:
+    enabled: true
+    repo: "https://github.com/orbruno/web-scraper-cli.git"
+    command: webscrape
+    description: "Scrape files from JavaScript-heavy pages"
+    # Special requirements for this tool
+    requires:
+      - nodejs
+      - chromium
+    post_install: "cd scraper && npm install"
+
+  mdconvert-cli:
+    enabled: true
+    repo: "https://github.com/orbruno/mdconvert-cli.git"
+    command: mdconvert
+    aliases:
+      - md2pdf
+    description: "Convert Markdown to PDF or DOCX"
+    requires:
+      - weasyprint
+      - pandoc
+
+  imagen-cli:
+    enabled: true
+    repo: "https://github.com/orbruno/image-cli.git"
+    local_name: imagen-cli  # Clone to this directory name
+    command: genimg
+    description: "Generate images with Google Imagen API"
+    env_vars:
+      - GOOGLE_AI_API_KEY
+
+  qr-gen-cli:
+    enabled: true
+    repo: "https://github.com/orbruno/qr-gen-cli.git"
+    command: qrgen
+    description: "Generate branded QR codes"
+
+# Example of adding a new tool:
+# my-new-tool:
+#   enabled: true
+#   repo: "https://github.com/user/my-new-tool.git"
+#   command: mytool
+#   description: "My custom tool"
+#   requires:
+#     - some-apt-package
+#   post_install: "npm install"  # Optional post-install command

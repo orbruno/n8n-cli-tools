@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # n8n Workflow Automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      # Basic settings
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - NODE_ENV=production
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+
+      # Authentication
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-}
+
+      # Encryption key (generate with: openssl rand -hex 32)
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-}
+
+      # Timezone
+      - GENERIC_TIMEZONE=${TIMEZONE:-America/Costa_Rica}
+      - TZ=${TIMEZONE:-America/Costa_Rica}
+
+      # External services (for CLI tools)
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY:-}
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./workflows:/home/node/workflows
+      # Shared volume for file exchange with cli-tools
+      - shared_data:/data/shared
+    depends_on:
+      - cli-tools
+    networks:
+      - n8n-network
+
+  # CLI Tools Container
+  cli-tools:
+    build:
+      context: ./cli-tools
+      dockerfile: Dockerfile
+    image: cli-tools:latest
+    container_name: cli-tools
+    restart: unless-stopped
+    environment:
+      # Auto-update on container start
+      - CLI_TOOLS_UPDATE_CHECK=${CLI_TOOLS_UPDATE_CHECK:-true}
+      - CLI_TOOLS_AUTO_UPDATE=${CLI_TOOLS_AUTO_UPDATE:-false}
+      # API Keys
+      - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY:-}
+    volumes:
+      # Shared volume for file exchange with n8n
+      - shared_data:/data/shared
+      # Persist tool repos for faster updates
+      - cli_tools_repos:/opt/cli-tools
+    networks:
+      - n8n-network
+    # Keep container running for n8n to execute commands
+    command: ["tail", "-f", "/dev/null"]
+
+  # Optional: Postgres database for n8n (recommended for production)
+  # Uncomment if you want persistent database instead of SQLite
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: n8n-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     - POSTGRES_USER=${POSTGRES_USER:-n8n}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-n8n}
+  #     - POSTGRES_DB=${POSTGRES_DB:-n8n}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - n8n-network
+
+networks:
+  n8n-network:
+    driver: bridge
+
+volumes:
+  n8n_data:
+    name: n8n_data
+  shared_data:
+    name: n8n_cli_shared
+  cli_tools_repos:
+    name: cli_tools_repos
+  # postgres_data:
+  #   name: n8n_postgres_data

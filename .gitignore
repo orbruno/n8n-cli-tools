@@ -1,0 +1,23 @@
+# Environment files
+.env
+
+# Docker volumes (if local)
+data/
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
