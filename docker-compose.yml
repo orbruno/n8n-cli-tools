@@ -1,6 +1,4 @@
-version: '3.8'
-
-# n8n + CLI Tools
+# VPS Stack: n8n + CLI Tools
 #
 # Usage:
 #   Development:  docker-compose up -d
@@ -54,10 +52,10 @@ services:
     depends_on:
       - cli-tools
     networks:
-      - n8n-network
+      - vps-network
 
   # ===========================================
-  # CLI Tools Container
+  # CLI Tools Container (Dynamic Loading)
   # ===========================================
   cli-tools:
     build:
@@ -67,7 +65,7 @@ services:
     container_name: cli-tools
     restart: unless-stopped
     environment:
-      # Auto-update settings
+      # Auto-update: set to true to pull latest from GitHub on restart
       - CLI_TOOLS_UPDATE_CHECK=${CLI_TOOLS_UPDATE_CHECK:-true}
       - CLI_TOOLS_AUTO_UPDATE=${CLI_TOOLS_AUTO_UPDATE:-false}
       # API Keys
@@ -77,21 +75,21 @@ services:
       - shared_data:/data/shared
       # Local files access
       - ./local-files:/files
-      # Persist tool repos for faster updates
+      # Persist cloned repos (avoids re-cloning on restart)
       - cli_tools_repos:/opt/cli-tools
     networks:
-      - n8n-network
+      - vps-network
     # Keep container running for n8n to execute commands
     command: ["tail", "-f", "/dev/null"]
 
 networks:
-  n8n-network:
+  vps-network:
     driver: bridge
 
 volumes:
   n8n_data:
     name: n8n_data
   shared_data:
-    name: n8n_cli_shared
+    name: vps_shared_data
   cli_tools_repos:
     name: cli_tools_repos

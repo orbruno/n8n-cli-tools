@@ -1,27 +1,22 @@
-# n8n + CLI Tools
+# VPS Stack
 
-Docker Compose setup for running n8n workflow automation with integrated CLI tools.
+Docker Compose setup for running n8n workflow automation with dynamically-loaded CLI tools.
 
-Supports both **development** (local) and **production** (Traefik/SSL) modes.
+**Use Case**: Run agentic processes on a VPS.
 
 ## Features
 
 - **n8n** - Workflow automation platform
-- **CLI Tools** - webscrape, mdconvert, genimg, qrgen
+- **CLI Tools** - webscrape, mdconvert, genimg, qrgen (loaded from GitHub)
 - **Development mode** - Local access on port 5678
 - **Production mode** - Traefik reverse proxy with automatic SSL
-- **Shared volumes** - File exchange between n8n and CLI tools
-- **Auto-updates** - CLI tools can update from GitHub on container start
+- **Dynamic loading** - Tools cloned at startup, auto-update on restart
 
 ## Quick Start
 
 ### Development (Local)
 
 ```bash
-# Clone repository
-git clone https://github.com/orbruno/n8n-cli-tools.git
-cd n8n-cli-tools
-
 # Run setup (generates secure credentials)
 ./setup.sh
 
@@ -65,9 +60,28 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Using CLI Tools in n8n
+## CLI Tools (Dynamically Loaded)
 
-### Execute Command Node
+Tools are cloned from GitHub on first container startup:
+
+| Command | Description | Repo |
+|---------|-------------|------|
+| `webscrape` | Scrape JS-heavy pages | [orbruno/web-scraper-cli](https://github.com/orbruno/web-scraper-cli) |
+| `mdconvert` | Markdown to PDF/DOCX | [orbruno/mdconvert-cli](https://github.com/orbruno/mdconvert-cli) |
+| `genimg` | AI image generation | [orbruno/image-cli](https://github.com/orbruno/image-cli) |
+| `qrgen` | QR code generator | [orbruno/qr-gen-cli](https://github.com/orbruno/qr-gen-cli) |
+
+### Auto-Update Tools
+
+```bash
+# Enable auto-update in .env
+CLI_TOOLS_AUTO_UPDATE=true
+
+# Restart container to pull latest
+docker-compose restart cli-tools
+```
+
+## Using CLI Tools in n8n
 
 In n8n's **Execute Command** node:
 
@@ -85,7 +99,7 @@ docker exec cli-tools qrgen "{{ $json.url }}" -o /data/shared/qr.png
 docker exec cli-tools genimg "{{ $json.prompt }}" -o /data/shared/image.png
 ```
 
-### Shared Volumes
+## Shared Volumes
 
 | Volume | n8n Path | cli-tools Path | Purpose |
 |--------|----------|----------------|---------|
@@ -104,24 +118,25 @@ docker exec cli-tools genimg "{{ $json.prompt }}" -o /data/shared/image.png
 | `DOMAIN_NAME` | Domain (production) | Prod only |
 | `SUBDOMAIN` | Subdomain (production) | Prod only |
 | `SSL_EMAIL` | Let's Encrypt email | Prod only |
-| `GOOGLE_AI_API_KEY` | For imagen-cli | Optional |
+| `GOOGLE_AI_API_KEY` | For genimg | Optional |
+| `CLI_TOOLS_AUTO_UPDATE` | Auto-update tools | Optional |
 
-### Customize CLI Tools
+## Directory Structure
 
-Edit `cli-tools/cli-tools.yml` to enable/disable tools:
-
-```yaml
-tools:
-  web-scraper-cli:
-    enabled: true
-  imagen-cli:
-    enabled: false  # Disable if not needed
 ```
-
-Rebuild after changes:
-```bash
-docker-compose build cli-tools
-docker-compose up -d
+vps-stack/
+├── docker-compose.yml        # Base configuration
+├── docker-compose.prod.yml   # Production (Traefik/SSL)
+├── .env.example              # Environment template
+├── setup.sh                  # Interactive setup script
+├── cli-tools-base/           # CLI tools Docker build
+│   ├── Dockerfile            # Dependencies only
+│   ├── entrypoint.sh         # Clones tools at startup
+│   └── cli-tools.yml         # Tool definitions
+├── workflows/                # Exported n8n workflows
+├── local-files/              # Host-mounted files
+└── docs/
+    └── KNOWN_ISSUES.md       # Troubleshooting guide
 ```
 
 ## Commands
@@ -140,29 +155,12 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
 docker-compose pull n8n
 docker-compose up -d
 
-# Update CLI tools
-docker exec cli-tools update-cli-tools
+# Update CLI tools (force re-clone)
+docker volume rm cli_tools_repos
+docker-compose up -d
 
 # Access CLI tools container
 docker exec -it cli-tools bash
-```
-
-## Directory Structure
-
-```
-n8n-cli-tools/
-├── docker-compose.yml        # Base configuration
-├── docker-compose.prod.yml   # Production (Traefik/SSL)
-├── .env.example              # Environment template
-├── setup.sh                  # Interactive setup script
-├── cli-tools/                # CLI tools Docker build
-│   ├── Dockerfile
-│   ├── cli-tools.yml         # Tool configuration
-│   └── entrypoint.sh
-├── workflows/                # Exported n8n workflows
-├── local-files/              # Host-mounted files
-└── docs/
-    └── KNOWN_ISSUES.md       # Troubleshooting guide
 ```
 
 ## Troubleshooting
@@ -182,16 +180,19 @@ webscrape --help
 # Check shared volume
 docker exec n8n ls -la /data/shared
 docker exec cli-tools ls -la /data/shared
+
+# Force re-clone tools
+docker volume rm cli_tools_repos
+docker-compose restart cli-tools
 ```
 
 ## Related Repositories
 
-- [cli-tools](https://github.com/orbruno/cli-tools) - CLI Tools Docker image
 - [web-scraper-cli](https://github.com/orbruno/web-scraper-cli)
 - [mdconvert-cli](https://github.com/orbruno/mdconvert-cli)
-- [image-cli](https://github.com/orbruno/image-cli) (imagen-cli)
+- [image-cli](https://github.com/orbruno/image-cli) (genimg)
 - [qr-gen-cli](https://github.com/orbruno/qr-gen-cli)
 
 ---
 
-**Last Updated**: 2026-02-03
+**Last Updated**: 2026-02-04
