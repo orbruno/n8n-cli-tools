@@ -56,6 +56,16 @@ tools:
     command: qrgen
     description: "Generate branded QR codes"
 
+  dbt-cli:
+    enabled: true
+    repo: "https://github.com/orbruno/dbt-cli.git"
+    command: dbt
+    description: "Data transformation with dbt (PostgreSQL/BigQuery)"
+    requires:
+      - postgresql-client
+    env_vars:
+      - DBT_PROFILES_DIR
+
 # Example of adding a new tool:
 # my-new-tool:
 #   enabled: true

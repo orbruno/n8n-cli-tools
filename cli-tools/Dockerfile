@@ -1,5 +1,5 @@
 # CLI Tools Docker Image
-# Contains: web-scraper-cli, mdconvert-cli, imagen-cli, qr-gen-cli
+# Contains: web-scraper-cli, mdconvert-cli, imagen-cli, qr-gen-cli, dbt
 #
 # Build: docker build -t cli-tools .
 # Run:   docker run -it cli-tools
@@ -41,6 +41,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     shared-mime-info \
     # Pandoc for mdconvert-cli DOCX support
     pandoc \
+    # PostgreSQL client for dbt
+    postgresql-client \
     # Clean up
     && rm -rf /var/lib/apt/lists/*
 
@@ -58,7 +60,8 @@ WORKDIR /opt/cli-tools
 RUN git clone https://github.com/orbruno/web-scraper-cli.git && \
     git clone https://github.com/orbruno/mdconvert-cli.git && \
     git clone https://github.com/orbruno/image-cli.git imagen-cli && \
-    git clone https://github.com/orbruno/qr-gen-cli.git
+    git clone https://github.com/orbruno/qr-gen-cli.git && \
+    git clone https://github.com/orbruno/dbt-cli.git
 
 # Install web-scraper-cli
 WORKDIR /opt/cli-tools/web-scraper-cli
@@ -75,6 +78,10 @@ RUN uv sync
 
 # Install qr-gen-cli
 WORKDIR /opt/cli-tools/qr-gen-cli
+RUN uv sync
+
+# Install dbt-cli (dbt-postgres and dbt-bigquery)
+WORKDIR /opt/cli-tools/dbt-cli
 RUN uv sync
 
 # Create wrapper scripts for global access
@@ -100,11 +107,15 @@ RUN echo '#!/bin/bash\ncd /opt/cli-tools/imagen-cli && uv run genimg "$@"' > /us
 RUN echo '#!/bin/bash\ncd /opt/cli-tools/qr-gen-cli && uv run qrgen "$@"' > /usr/local/bin/qrgen && \
     chmod +x /usr/local/bin/qrgen
 
+# dbt wrapper
+RUN echo '#!/bin/bash\ncd /opt/cli-tools/dbt-cli && uv run dbt "$@"' > /usr/local/bin/dbt && \
+    chmod +x /usr/local/bin/dbt
+
 # Create update script to pull latest changes from all repos
 RUN echo '#!/bin/bash\n\
 echo "Updating CLI tools from GitHub..."\n\
 \n\
-for tool in web-scraper-cli mdconvert-cli imagen-cli qr-gen-cli; do\n\
+for tool in web-scraper-cli mdconvert-cli imagen-cli qr-gen-cli dbt-cli; do\n\
     echo ""\n\
     echo "==> Updating $tool"\n\
     cd /opt/cli-tools/$tool\n\
@@ -137,6 +148,7 @@ echo "  mdconvert  - Convert Markdown to PDF or DOCX"\n\
 echo "  md2pdf     - Alias for mdconvert"\n\
 echo "  genimg     - Generate images with Google Imagen API"\n\
 echo "  qrgen      - Generate branded QR codes"\n\
+echo "  dbt        - Data transformation with dbt (PostgreSQL/BigQuery)"\n\
 echo ""\n\
 echo "Update tools:"\n\
 echo "  update-cli-tools  - Pull latest from GitHub and reinstall"\n\

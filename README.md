@@ -7,7 +7,7 @@ Docker Compose setup for running n8n workflow automation with dynamically-loaded
 ## Features
 
 - **n8n** - Workflow automation platform
-- **CLI Tools** - webscrape, mdconvert, genimg, qrgen (loaded from GitHub)
+- **CLI Tools** - webscrape, mdconvert, genimg, qrgen, dbt (loaded from GitHub)
 - **Development mode** - Local access on port 5678
 - **Production mode** - SSL via nginx reverse proxy (or Traefik)
 - **Dynamic loading** - Tools cloned at startup, auto-update on restart
@@ -54,6 +54,7 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 │  │  :80/:443  │     │              │     │  mdconvert    │  │
 │  └────────────┘     └──────────────┘     │  genimg       │  │
 │                            │             │  qrgen        │  │
+│                            │             │  dbt          │  │
 │                            │             └───────────────┘  │
 │                     ┌──────┴──────┐             │           │
 │                     │   shared    │─────────────┘           │
@@ -72,6 +73,7 @@ Tools are cloned from GitHub on first container startup:
 | `mdconvert` | Markdown to PDF/DOCX | [orbruno/mdconvert-cli](https://github.com/orbruno/mdconvert-cli) |
 | `genimg` | AI image generation | [orbruno/image-cli](https://github.com/orbruno/image-cli) |
 | `qrgen` | QR code generator | [orbruno/qr-gen-cli](https://github.com/orbruno/qr-gen-cli) |
+| `dbt` | Data transformations (PostgreSQL/BigQuery) | [orbruno/dbt-cli](https://github.com/orbruno/dbt-cli) |
 
 ### Auto-Update Tools
 
@@ -99,6 +101,9 @@ docker exec cli-tools qrgen "{{ $json.url }}" -o /data/shared/qr.png
 
 # Generate AI image (requires GOOGLE_AI_API_KEY)
 docker exec cli-tools genimg "{{ $json.prompt }}" -o /data/shared/image.png
+
+# Run dbt transformations (requires profiles.yml in DBT_PROFILES_DIR)
+docker exec cli-tools dbt run --profiles-dir /data/shared/dbt --project-dir /data/shared/dbt-project
 ```
 
 ## Shared Volumes
@@ -123,6 +128,7 @@ docker exec cli-tools genimg "{{ $json.prompt }}" -o /data/shared/image.png
 | `SSL_EMAIL` | Let's Encrypt email | Prod only |
 | `GOOGLE_AI_API_KEY` | For genimg | Optional |
 | `CLI_TOOLS_AUTO_UPDATE` | Auto-update tools | Optional |
+| `DBT_PROFILES_DIR` | dbt profiles location | Optional |
 
 > **Note**: Owner account credentials are set up manually via the n8n web interface on first launch. There is no environment variable to automate this.
 
@@ -201,6 +207,7 @@ docker-compose restart cli-tools
 - [mdconvert-cli](https://github.com/orbruno/mdconvert-cli)
 - [image-cli](https://github.com/orbruno/image-cli) (genimg)
 - [qr-gen-cli](https://github.com/orbruno/qr-gen-cli)
+- [dbt-cli](https://github.com/orbruno/dbt-cli) (dbt)
 
 ---
 

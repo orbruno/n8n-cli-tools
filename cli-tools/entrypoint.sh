@@ -58,6 +58,7 @@ if [ "$AUTO_UPDATE" = "true" ] || [ "$UPDATE_CHECK" = "true" ]; then
 
     updates_available=false
 
+    # Check all CLI tool directories including dbt-cli
     for tool_dir in /opt/cli-tools/*/; do
         if [ -d "$tool_dir/.git" ]; then
             if check_for_updates "$tool_dir"; then

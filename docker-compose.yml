@@ -63,6 +63,8 @@ services:
       - CLI_TOOLS_AUTO_UPDATE=${CLI_TOOLS_AUTO_UPDATE:-false}
       # API Keys
       - GOOGLE_AI_API_KEY=${GOOGLE_AI_API_KEY:-}
+      # dbt profiles directory
+      - DBT_PROFILES_DIR=${DBT_PROFILES_DIR:-/data/shared/dbt}
     volumes:
       # Shared volume for file exchange with n8n
       - shared_data:/data/shared
