@@ -9,7 +9,7 @@ Docker Compose setup for running n8n workflow automation with dynamically-loaded
 - **n8n** - Workflow automation platform
 - **CLI Tools** - webscrape, mdconvert, genimg, qrgen (loaded from GitHub)
 - **Development mode** - Local access on port 5678
-- **Production mode** - Traefik reverse proxy with automatic SSL
+- **Production mode** - SSL via nginx reverse proxy (or Traefik)
 - **Dynamic loading** - Tools cloned at startup, auto-update on restart
 
 ## Quick Start
@@ -23,7 +23,7 @@ Docker Compose setup for running n8n workflow automation with dynamically-loaded
 # Start services
 docker-compose up -d
 
-# Access n8n
+# Access n8n and create owner account
 open http://localhost:5678
 ```
 
@@ -33,12 +33,14 @@ open http://localhost:5678
 # Run production setup
 ./setup.sh --prod
 
-# Start with Traefik
+# Start services
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
-# Access n8n at your configured domain
+# Access n8n at your configured domain and create owner account
 # https://n8n.yourdomain.com
 ```
+
+> **Note**: On first start, n8n requires manual setup of the owner account via the web interface. This cannot be automated via environment variables (as of n8n v1.0+).
 
 ## Architecture
 
@@ -112,14 +114,17 @@ docker exec cli-tools genimg "{{ $json.prompt }}" -o /data/shared/image.png
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `N8N_ADMIN_USER` | Admin username | Yes |
-| `N8N_ADMIN_PASSWORD` | Admin password | Yes |
-| `N8N_ENCRYPTION_KEY` | Encryption key | Yes |
+| `N8N_ENCRYPTION_KEY` | Encryption key for credentials | Yes |
+| `N8N_HOST` | Hostname for n8n | Yes |
+| `N8N_PROTOCOL` | http or https | Yes |
+| `WEBHOOK_URL` | Full webhook URL | Yes |
 | `DOMAIN_NAME` | Domain (production) | Prod only |
 | `SUBDOMAIN` | Subdomain (production) | Prod only |
 | `SSL_EMAIL` | Let's Encrypt email | Prod only |
 | `GOOGLE_AI_API_KEY` | For genimg | Optional |
 | `CLI_TOOLS_AUTO_UPDATE` | Auto-update tools | Optional |
+
+> **Note**: Owner account credentials are set up manually via the n8n web interface on first launch. There is no environment variable to automate this.
 
 ## Directory Structure
 
@@ -166,6 +171,10 @@ docker exec -it cli-tools bash
 ## Troubleshooting
 
 See [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md) for common issues.
+
+### GridPane / Nginx Setup
+
+For deploying on GridPane-managed VPS with nginx reverse proxy, see [docs/GRIDPANE_SETUP.md](docs/GRIDPANE_SETUP.md).
 
 ### Quick Fixes
 

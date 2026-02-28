@@ -23,7 +23,7 @@ fi
 echo -e "${BLUE}n8n + CLI Tools Setup${NC}"
 echo "======================"
 if [ "$PROD_MODE" = true ]; then
-    echo -e "${YELLOW}Mode: Production (with Traefik/SSL)${NC}"
+    echo -e "${YELLOW}Mode: Production (with SSL)${NC}"
 else
     echo "Mode: Development (local)"
 fi
@@ -37,17 +37,6 @@ if [ -f .env ]; then
         echo "Aborted."
         exit 0
     fi
-fi
-
-# Get admin username
-read -p "Admin username [admin]: " admin_user
-admin_user=${admin_user:-admin}
-
-# Get admin password or generate one
-read -p "Admin password (leave empty to generate): " admin_password
-if [ -z "$admin_password" ]; then
-    admin_password=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 16)
-    echo -e "${GREEN}Generated password: ${admin_password}${NC}"
 fi
 
 # Generate encryption key
@@ -93,12 +82,6 @@ cat > .env << EOF
 # Mode: $([ "$PROD_MODE" = true ] && echo "Production" || echo "Development")
 
 # =====================================================
-# Admin Credentials
-# =====================================================
-N8N_ADMIN_USER=${admin_user}
-N8N_ADMIN_PASSWORD=${admin_password}
-
-# =====================================================
 # Security
 # =====================================================
 N8N_ENCRYPTION_KEY=${encryption_key}
@@ -114,7 +97,7 @@ TIMEZONE=${timezone}
 N8N_DIAGNOSTICS_ENABLED=false
 
 # =====================================================
-# Production Settings (Traefik/SSL)
+# Production Settings (SSL)
 # =====================================================
 DOMAIN_NAME=${domain_name}
 SUBDOMAIN=${subdomain}
@@ -135,12 +118,6 @@ EOF
 echo ""
 echo -e "${GREEN}✓ Configuration saved to .env${NC}"
 echo ""
-echo "Your credentials:"
-echo "  Username: ${admin_user}"
-echo "  Password: ${admin_password}"
-echo ""
-echo -e "${YELLOW}Save these credentials securely!${NC}"
-echo ""
 
 if [ "$PROD_MODE" = true ]; then
     echo "Start production with:"
@@ -155,3 +132,7 @@ else
     echo "Access n8n at:"
     echo "  http://localhost:5678"
 fi
+
+echo ""
+echo -e "${YELLOW}Important: On first launch, you must create the owner account${NC}"
+echo -e "${YELLOW}via the n8n web interface. This cannot be automated.${NC}"

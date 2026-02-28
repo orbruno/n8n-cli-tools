@@ -22,12 +22,6 @@ services:
       - NODE_ENV=production
       - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
 
-      # Skip setup wizard - use basic auth
-      - N8N_USER_MANAGEMENT_DISABLED=true
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=${N8N_ADMIN_USER:-admin}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_ADMIN_PASSWORD}
-
       # Encryption key for credentials
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
 
@@ -36,7 +30,6 @@ services:
       - TZ=${TIMEZONE:-America/Costa_Rica}
 
       # Features
-      - N8N_RUNNERS_ENABLED=true
       - N8N_DIAGNOSTICS_ENABLED=${N8N_DIAGNOSTICS_ENABLED:-false}
       - N8N_PERSONALIZATION_ENABLED=false
 
