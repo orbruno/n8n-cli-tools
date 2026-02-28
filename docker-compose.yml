@@ -1,4 +1,4 @@
-# VPS Stack: n8n + CLI Tools + WhatsApp API
+# VPS Stack: n8n + CLI Tools
 #
 # Usage:
 #   Development:  docker-compose up -d
@@ -74,34 +74,6 @@ services:
       - vps-network
     # Keep container running for n8n to execute commands
     command: ["tail", "-f", "/dev/null"]
-
-  # ===========================================
-  # WhatsApp Cloud API Service (FastAPI)
-  # ===========================================
-  whatsapp-api:
-    build:
-      context: https://github.com/turrico/whatsapp-api.git
-      dockerfile: Dockerfile
-    container_name: whatsapp-api
-    restart: unless-stopped
-    ports:
-      - "${WHATSAPP_API_PORT:-8050}:8050"
-    environment:
-      - WHATSAPP_VERIFY_TOKEN=${WHATSAPP_VERIFY_TOKEN}
-      - WHATSAPP_APP_SECRET=${WHATSAPP_APP_SECRET}
-      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID:-}
-      - WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN:-}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - N8N_WEBHOOK_URL=${N8N_WHATSAPP_WEBHOOK_URL:-http://n8n:5678/webhook/whatsapp-events}
-    healthcheck:
-      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8050/health').raise_for_status()"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    networks:
-      - vps-network
 
 networks:
   vps-network:
