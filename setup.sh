@@ -71,7 +71,47 @@ else
     n8n_protocol="http"
 fi
 
-# Get Google AI API key (optional)
+# ===========================================
+# Integration Setup
+# ===========================================
+echo ""
+echo -e "${BLUE}Integration Setup${NC}"
+echo "-------------------"
+echo "n8n connects to Google and Notion natively via built-in nodes."
+echo "Credentials are configured in n8n's UI, but OAuth2 needs env vars."
+echo ""
+
+# Google OAuth2
+echo -e "${YELLOW}Google OAuth2 (Gmail, Calendar, Drive)${NC}"
+echo "  Setup guide: docs/google-oauth-setup.md"
+echo "  GCP Console: https://console.cloud.google.com/"
+echo ""
+read -p "Configure Google OAuth2 now? (y/N): " setup_google
+google_oauth_client_id=""
+google_oauth_client_secret=""
+if [ "$setup_google" = "y" ] || [ "$setup_google" = "Y" ]; then
+    read -p "  Google OAuth Client ID: " google_oauth_client_id
+    read -p "  Google OAuth Client Secret: " google_oauth_client_secret
+    if [ "$PROD_MODE" = true ]; then
+        echo -e "  ${YELLOW}Redirect URI: https://${subdomain}.${domain_name}/rest/oauth2-credential/callback${NC}"
+    else
+        echo -e "  ${YELLOW}Redirect URI: http://localhost:5678/rest/oauth2-credential/callback${NC}"
+    fi
+fi
+
+# Notion
+echo ""
+echo -e "${YELLOW}Notion API${NC}"
+echo "  Setup guide: docs/notion-setup.md"
+echo "  Integrations: https://www.notion.so/my-integrations"
+echo ""
+read -p "Configure Notion now? (y/N): " setup_notion
+notion_api_token=""
+if [ "$setup_notion" = "y" ] || [ "$setup_notion" = "Y" ]; then
+    read -p "  Notion Internal Integration Secret: " notion_api_token
+fi
+
+# Google AI API key (optional, for CLI tools)
 echo ""
 read -p "Google AI API Key (optional, for genimg): " google_api_key
 
@@ -102,6 +142,22 @@ N8N_DIAGNOSTICS_ENABLED=false
 DOMAIN_NAME=${domain_name}
 SUBDOMAIN=${subdomain}
 SSL_EMAIL=${ssl_email}
+
+# =====================================================
+# n8n Editor & Webhooks
+# =====================================================
+N8N_EDITOR_BASE_URL=${webhook_url}
+
+# =====================================================
+# Google OAuth2 Credentials (Gmail, Calendar, Drive)
+# =====================================================
+GOOGLE_OAUTH_CLIENT_ID=${google_oauth_client_id}
+GOOGLE_OAUTH_CLIENT_SECRET=${google_oauth_client_secret}
+
+# =====================================================
+# Notion API
+# =====================================================
+NOTION_API_TOKEN=${notion_api_token}
 
 # =====================================================
 # CLI Tools Settings

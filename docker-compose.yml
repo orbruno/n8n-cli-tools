@@ -29,6 +29,19 @@ services:
       - GENERIC_TIMEZONE=${TIMEZONE:-America/Costa_Rica}
       - TZ=${TIMEZONE:-America/Costa_Rica}
 
+      # Editor & Webhooks (required for OAuth2 redirect URIs)
+      - N8N_EDITOR_BASE_URL=${N8N_EDITOR_BASE_URL:-http://localhost:5678/}
+
+      # Binary data & community packages
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+      - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
+
+      # Branding
+      - N8N_CUSTOM_INSTANCE_NAME=${N8N_INSTANCE_NAME:-n8n}
+
+      # API access (for pushing workflows via CLI/scripts)
+      - N8N_PUBLIC_API_DISABLED=false
+
       # Features
       - N8N_DIAGNOSTICS_ENABLED=${N8N_DIAGNOSTICS_ENABLED:-false}
       - N8N_PERSONALIZATION_ENABLED=false
@@ -40,12 +53,41 @@ services:
       - n8n_data:/home/node/.n8n
       - ./workflows:/home/node/workflows
       - ./local-files:/files
+      # Custom branding (override n8n defaults)
+      - ./local-files/favicon.ico:/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-editor-ui@file+packages+frontend+editor-ui/node_modules/n8n-editor-ui/dist/favicon.ico:ro
+      - ./local-files/index.html:/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-editor-ui@file+packages+frontend+editor-ui/node_modules/n8n-editor-ui/dist/index.html:ro
       # Shared volume for file exchange with cli-tools
       - shared_data:/data/shared
     depends_on:
       - cli-tools
     networks:
       - vps-network
+
+  # ===========================================
+  # n8n MCP Server (AI Workflow Management)
+  # ===========================================
+  n8n-mcp:
+    image: ghcr.io/czlonkowski/n8n-mcp:latest
+    container_name: n8n-mcp
+    restart: unless-stopped
+    ports:
+      - "${N8N_MCP_PORT:-3100}:3000"
+    environment:
+      - MCP_MODE=http
+      - AUTH_TOKEN=${N8N_MCP_AUTH_TOKEN}
+      - N8N_API_URL=http://n8n:5678
+      - N8N_API_KEY=${N8N_API_KEY}
+      - LOG_LEVEL=${N8N_MCP_LOG_LEVEL:-error}
+      - N8N_MCP_TELEMETRY_DISABLED=true
+    depends_on:
+      - n8n
+    networks:
+      - vps-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # ===========================================
   # CLI Tools Container (Dynamic Loading)
@@ -83,7 +125,7 @@ networks:
 
 volumes:
   n8n_data:
-    name: n8n_data
+    name: vps_stack_n8n_data
   shared_data:
     name: vps_shared_data
   cli_tools_repos:
